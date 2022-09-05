@@ -177,7 +177,7 @@ class Reply(models.Model):
     follow_up = GenericRelation(FollowUp, related_query_name="replay")
     
     def __str__(self) :
-        f"{self.user} on {self.comment}"
+        return f"{self.user} on {self.comment}"
 
 
 class Loan(models.Model) :
