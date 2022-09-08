@@ -1,0 +1,52 @@
+{% extends 'main.html' %}
+
+{% block content %}
+    <h3>name : {{book.title}}</h3>
+    <h3>author : {{book.author.full_name}}</h3>
+    <h3>publisher : {{book.publisher.name}}</h3>
+    <h3>pages : {{book.pages}}</h3>
+    <h3>published in : {{book.year_published}}</h3>
+    <h3>print number : {{book.print_num}}</h3>
+    <h3>cover number : {{book.cover_num}}</h3>
+    <h3>print number : {{book.print_num}}</h3>
+    <h3>in store : {{book.in_store}}</h3>
+    <h3>cost : {{book.cost}}$</h3>
+    <hr/>
+    {% if not book.comment.all %}
+        <h2 style="color:red">there is no comment yet.</h2>
+    {% endif %}
+    <div style="background-color:#bbbbbb;border:solid red 5px;padding:20px">
+        <h2>Comments on this Book</h2>
+    {% for comment in book.comment.all %}
+        {% if comment.visible %}
+            {% url 'authenticate:user_login' %}
+            <div style="background-color:#bbbbbb;border:solid blue 5px;padding:20px;margin-bottom:20px">
+                <h2 style="margin-left:25px;color:red">{{ comment.body }}</h2>
+                <h6 style="margin-left:25px;margin-top:50px;color:#4d3adf">commented by <b>{{ comment.user.username }}</b> in {{ comment.date_published }}</h6>
+                <div style="margin-left:50px;margin-bottom:20px;border:solid red 2px;padding-left:10px">
+                    {% for reply in comment.reply.all %}
+                        {% if reply.visible %}    
+                            <div>
+                                {% if reply.quotes %}
+                                    <p style="margin-left:60px;color:blue">{{reply.quotes.user.username}} : {{reply.quotes.body}}</p>
+                                {% endif %}
+                                <p>{{reply.user.username}} : {{reply.body}}</p>
+                            </div>
+                            {% if user.is_authenticated %}
+                            <div>
+                                <a href="{% url 'managing:set-action-like' reply.id 'managing_reply' %}?next={{ request.path|urlencode }}">Like</a>
+                                <a href="{% url 'managing:set-action-like' reply.id 'managing_reply' %}?next={{ request.path|urlencode }}">DisLike</a>
+                                <a href="#">Report</a>
+                            </div>
+                            {% endif %}
+                            <hr style="height:3px"/>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        
+    {% endfor %}
+    <div>
+    
+{% endblock %}

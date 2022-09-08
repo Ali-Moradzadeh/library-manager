@@ -1,10 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, User
+from django.contrib.auth.models import AbstractBaseUser, User, AbstractUser
 from taggit.models import Tag as T, TaggedItem as TI
 from taggit.managers import TaggableManager as TG
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from datetime import datetime, timedelta, date
+from authenticate.models import CustomUser
+
 
 # Create your models here.
 app_name = 'managing'
@@ -13,12 +15,12 @@ def getModelQ(model) :
     return models.Q(app_label=app_name, model=model)
 
 class GenericAbs(models.Model) :
-    user = models.ForeignKey("MngUser", on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s")
-    action = models.CharField(max_length=1)
-    date = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="%(app_label)s_%(class)s", null=True)
+    action = models.CharField(max_length=1, null=True)
+    date = models.DateTimeField(auto_now=True, null=True)
     
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name="Action on model")
-    object_id = models.PositiveIntegerField()
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name="Action on model", null=True)
+    object_id = models.PositiveIntegerField(null=True)
     content_object = GenericForeignKey()
     
     class Meta :
@@ -28,9 +30,9 @@ class GenericAbs(models.Model) :
 
 class Popularity(GenericAbs) :
     ACTION = (('+', 'Like'), ('-', 'DisLike'), ("*", "Bookmark"))
-    action = models.CharField(max_length=1, choices=ACTION)
+    action = models.CharField(max_length=1, choices=ACTION, null=True)
     foreigns = getModelQ('author') | getModelQ('publisher') | getModelQ('book') | getModelQ('comment') | getModelQ('reply') | models.Q(app_label="taggit", model="tag")
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model", null=True)
     
     def __str__(self) :
         return f"{self.content_object} {self.get_action_display()}ed by {self.user}"
@@ -38,9 +40,9 @@ class Popularity(GenericAbs) :
 
 class Prevention(GenericAbs) :
     ACTION = (('B', 'Bann'), ('R', 'Report'))
-    action = models.CharField(max_length=1, choices=ACTION)
+    action = models.CharField(max_length=1, choices=ACTION, null=True)
     foreigns = getModelQ('author') | getModelQ('publisher') | getModelQ('book') | getModelQ('comment') | getModelQ('reply')
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model", null=True)
     
     def __str__(self) :
         return f"{self.content_object} {self.get_action_display()}ed by {self.user}"
@@ -48,51 +50,28 @@ class Prevention(GenericAbs) :
 
 class FollowUp(GenericAbs) :
     ACTION = (('F', 'Follow'), )
-    action = models.CharField(max_length=1, choices=ACTION)
+    action = models.CharField(max_length=1, choices=ACTION, null=True)
     foreigns = getModelQ('author') | getModelQ('publisher') | getModelQ('book')
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model", null=True)
     
     def __str__(self) :
         return f"{self.content_object} followed by {self.user}"
 
 
 class Address(models.Model) :
-    foreigns = getModelQ('Mnguser') | getModelQ('publisher')
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model")
-    object_id = models.PositiveIntegerField()
+    foreigns = getModelQ(CustomUser) | getModelQ('publisher')
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model", null=True)
+    object_id = models.PositiveIntegerField(null=True)
     content_object = GenericForeignKey()
-    full_address = models.TextField()
+    full_address = models.TextField(null=True)
     
     class Meta :
         unique_together = ("content_type", "object_id")
-        
-
-class MngUser(AbstractBaseUser) :
-    user = models.CharField(max_length=30, unique=True)
-    email = models.EmailField(unique=True, blank=True)
-    is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    national_code=models.PositiveIntegerField(unique=True, null=True)
-    observer_user=models.ForeignKey("self", on_delete=models.SET_NULL, blank=True, null=True)
-    loan_remain = models.PositiveSmallIntegerField(default=5)
-    profile_img = models.ImageField(upload_to="managing/images/profile_images", null=True, blank=True)
-    about = models.TextField(blank=True)
-    violations = models.PositiveIntegerField(default=0)
-    total_damage_cost = models.PositiveIntegerField(default=0)
-    wallet_inventory = models.PositiveIntegerField(default=0)
-    
-    
-    address = GenericRelation(Address, related_query_name="user")
-    
-    USERNAME_FIELD = "user"
-    REQUIRED_FIELDS = ["user", "email", "national_code"]
-    
 
 class Author(models.Model) :
-    name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
-    nationality = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, null=True)
+    last_name = models.CharField(max_length=30, null=True)
+    nationality = models.CharField(max_length=30, null=True)
     
     popularity = GenericRelation(Popularity, related_query_name='author')
     prevention = GenericRelation(Prevention, related_query_name='author')
@@ -110,7 +89,7 @@ class Author(models.Model) :
 
 class Publisher(models.Model) :
     name = models.CharField(max_length=30)
-    register_code = models.PositiveIntegerField(unique=True)
+    register_code = models.PositiveIntegerField(unique=True, null=True)
     #branches;
     
     popularity = GenericRelation(Popularity, related_query_name="publisher")
@@ -126,17 +105,16 @@ class Book(models.Model) :
     
     def year_choices():
         return [(r,r) for r in range(1850, date.today().year+1)]
-    title = models.CharField(max_length=100, unique=True)
-    Author = models.ForeignKey(Author, on_delete=models.CASCADE,related_name="book")
-    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE,related_name="book")
-    year_published = models.PositiveIntegerField(choices=year_choices())
+    title = models.CharField(max_length=100, unique=True, null=True)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE,related_name="book", null=True)
+    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE,related_name="book", null=True)
+    year_published = models.PositiveIntegerField(choices=year_choices(), null=True)
     print_num = models.PositiveSmallIntegerField(default=1)
     cover_num = models.PositiveSmallIntegerField(default=1)
     cover_img = models.ImageField(upload_to="forum/images/books_covers", null=True, blank=True)
-    pages = models.PositiveIntegerField()
-    in_store = models.PositiveSmallIntegerField()
-    cost = models.PositiveIntegerField()
-    
+    pages = models.PositiveIntegerField(null=True)
+    in_store = models.PositiveSmallIntegerField(null=True)
+    cost = models.PositiveIntegerField(null=True)
     tag = TG()
     
     popularity = GenericRelation(Popularity, related_query_name="book")
@@ -149,11 +127,11 @@ class Book(models.Model) :
 
 class Comment(models.Model):
     STATUS = (("V", "VISIBLE"), ("I", "INVISIBLE"))
-    user = models.ForeignKey(MngUser, on_delete=models.CASCADE, related_name="comment")
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="comment")
-    body = models.TextField()
-    date_published = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="comment", null=True)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="comment", null=True)
+    body = models.TextField(null=True)
+    date_published = models.DateTimeField(auto_now_add=True, null=True)
+    date_updated = models.DateTimeField(auto_now=True, null=True)
     visible = models.BooleanField(default=True)
     
     popularity = GenericRelation(Popularity, related_query_name="comment")
@@ -161,15 +139,16 @@ class Comment(models.Model):
     follow_up = GenericRelation(FollowUp, related_query_name="comment")
     
     def __str__(self) :
-        return f"{self.user} on {self.book}"
+        return f"{self.body}"
 
 
 class Reply(models.Model):
-    user = models.ForeignKey(MngUser, on_delete=models.CASCADE, related_name="reply")
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="reply")
-    quotes = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="on_reply", blank=True)
-    date_published = models.DateTimeField(auto_now_add=True)
-    date_updated = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="reply", null=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name="reply", null=True)
+    quotes = models.ForeignKey("self", on_delete=models.CASCADE, related_name="on_reply", null=True, blank=True)
+    body = models.TextField(null=True)
+    date_published = models.DateTimeField(auto_now_add=True, null=True)
+    date_updated = models.DateTimeField(auto_now=True, null=True)
     visible = models.BooleanField(default=True)
     
     popularity = GenericRelation(Popularity, related_query_name="replay")
@@ -177,22 +156,22 @@ class Reply(models.Model):
     follow_up = GenericRelation(FollowUp, related_query_name="replay")
     
     def __str__(self) :
-        return f"{self.user} on {self.comment}"
+        return f"{self.body}"
 
 
 class Loan(models.Model) :
     STATE = (("R", "Requested"), ("C", "Checking"), ("RC", "request confirmed"), ("S", "Sent"), ("D", "Delivered"))
-    user = models.ForeignKey(MngUser, on_delete=models.CASCADE, related_name="req_loan")
-    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="req_loan")
-    date_requested = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="req_loan", null=True)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="req_loan", null=True)
+    date_requested = models.DateTimeField(auto_now_add=True, null=True)
     date_request_confirmed = models.DateTimeField(null=True, blank=True)
     date_sent = models.DateTimeField(null=True, blank=True)
     date_delivered = models.DateTimeField(null=True, blank=True)
-    last_request_state_date = models.DateTimeField(auto_now_add=True)
+    last_request_state_date = models.DateTimeField(auto_now_add=True, null=True)
     last_extension_date = models.DateTimeField(null=True, blank=True)
     total_extension_day = models.PositiveSmallIntegerField(default=0)
     remain_extention_count = models.PositiveSmallIntegerField(default=5)
-    request_state = models.CharField(max_length=2, choices=STATE)
+    request_state = models.CharField(max_length=2, choices=STATE, null=True)
     serial = models.CharField(max_length=20, blank=True)
     
     @property
@@ -216,10 +195,11 @@ class Loan(models.Model) :
 class Suggestion(models.Model) :
     STATE = (("S", "Suggested"), ("C", "Considered"))
     
-    user = models.ForeignKey(MngUser, on_delete=models.CASCADE, related_name="suggestions")
-    book = models.CharField(max_length=30)
-    Author = models.CharField(max_length=30)
-    info = models.TextField
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="ssuggestions", null=True)
+    book = models.CharField(max_length=30, null=True)
+    Author = models.CharField(max_length=30, null=True)
+    info = models.TextField(null=True)
     state = models.CharField(max_length=1, choices=STATE, default="S")
+    date = models.DateTimeField(auto_now_add=True, null=True)
     
 

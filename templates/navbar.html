@@ -1,0 +1,27 @@
+<h1>Library Project</h1>
+<div>
+    {% if user.is_authenticated %}
+        <button>
+            <a href= {% url 'authenticate:user_profile' %}>Profile</a>
+        </button>
+        <button>
+        <a href= {% url 'authenticate:user_logout' %}>Log Out</a>
+        </button>
+        <button>
+        <a href= {% url 'authenticate:user_password_change' %}>Change Password</a>
+        </button>
+        {% if user.is_staff %}
+        <button>
+        <a href= {% url 'authenticate:user_logout' %}>Manage Books</a>
+        </button>
+        {% endif %}
+    {% else %}
+         <button>
+            <a href= {% url 'authenticate:user_register' %}>Register</a>
+        </button>
+        <button>
+            <a href= {% url 'authenticate:user_login' %}>Login</a>
+        </button>
+    {% endif %}
+</div>
+<hr/>
