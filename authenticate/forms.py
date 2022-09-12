@@ -3,7 +3,7 @@ from managing.models import CustomUser
 
 class RegisterForm(forms.ModelForm) :
     password = forms.CharField(label="password", widget=forms.PasswordInput)
-    password2 = forms.CharField(label="repeat password", widget=forms.PasswordInput)
+    password2 = forms.CharField(label="confirm password", widget=forms.PasswordInput(attrs={"class" : "form-control"}))
     
     class Meta :
         model = CustomUser 

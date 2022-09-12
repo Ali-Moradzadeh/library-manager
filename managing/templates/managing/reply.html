@@ -1,0 +1,21 @@
+{% for reply in replies %}
+    {% if reply.visible %}    
+        <div style="margin-left:50px;margin-bottom:20px;border:solid red 2px;padding-left:10px;background-color:#bbbbbb">
+            {% if reply.quotes %}
+                <p style="margin-left:60px;color:blue"><small>{{reply.quotes.user.username}} : {{reply.quotes.body}}</small></p>
+            {% endif %}
+            <p>{{reply.user.username}} : {{reply.body}}</p>
+            {% if request.user.is_authenticated %}
+                {% if request.user != reply.user %}
+                    <button><a href="{% url 'managing:set-action-like' reply.id 'managing_reply' 'LIKE' %}?next={{ request.path|urlencode }}">Like</a></button>
+                    <button><a href="{% url 'managing:set-action-like' reply.id 'managing_reply' 'DISLIKE' %}?next={{ request.path|urlencode }}">DisLike</a></button>
+                {% else %}
+                    <button>
+                        <a href="{% url 'managing:delete_object_model' reply.id 'managing_reply'%}?next={{ request.path|urlencode }}">delete</a>
+                    </button>
+                {% endif %}
+                <button><a href="{% url 'managing:add_reply_on' reply.id  %}">reply</a></button>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endfor %}

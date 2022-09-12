@@ -6,8 +6,10 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from datetime import datetime, timedelta, date
 from authenticate.models import CustomUser
-
-
+from django.utils.text import slugify
+from .managers import BookManager, MostCommented, PopularityManager
+import addresses
+from django.urls import reverse
 # Create your models here.
 app_name = 'managing'
 
@@ -25,7 +27,7 @@ class GenericAbs(models.Model) :
     
     class Meta :
         abstract = True
-        unique_together = ("action", "content_type", "object_id")
+        unique_together = ("user", "action", "content_type", "object_id")
         
 
 class Popularity(GenericAbs) :
@@ -33,6 +35,43 @@ class Popularity(GenericAbs) :
     action = models.CharField(max_length=1, choices=ACTION, null=True)
     foreigns = getModelQ('author') | getModelQ('publisher') | getModelQ('book') | getModelQ('comment') | getModelQ('reply') | models.Q(app_label="taggit", model="tag")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=foreigns, verbose_name="Action on model", null=True)
+    
+    objects = PopularityManager()
+    
+    def save(self, *args, **kwargs) :
+        opposites = ("+", "-")
+        
+        def getOpposite(action) :
+            if action in opposites :
+                return opposites[1 - opposites.index(action)]
+            return None
+        
+        def get_object_with_action(action) :
+            pop = Popularity.objects.filter(user=self.user, content_type=self.content_type, object_id = self.object_id, action=action)
+            
+            if pop.exists() :
+                return pop[0]
+            return None
+
+        if getOpposite(self.action) :
+            this = get_object_with_action(self.action)
+            opposite = get_object_with_action(getOpposite(self.action))
+            if this:
+                return this.delete()
+
+            elif opposite:
+                opposite.action = self.action
+                self = opposite
+                return super().save(*args, **kwargs)
+        
+        else :
+            
+            if this := get_object_with_action(self.action) :
+                return this.delete()
+            
+        super().save(*args, **kwargs)
+            
+    
     
     def __str__(self) :
         return f"{self.content_object} {self.get_action_display()}ed by {self.user}"
@@ -102,12 +141,17 @@ class Publisher(models.Model) :
 
 
 class Book(models.Model) :
-    
+    objects = BookManager()
+    mostCommented = MostCommented()
     def year_choices():
         return [(r,r) for r in range(1850, date.today().year+1)]
-    title = models.CharField(max_length=100, unique=True, null=True)
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="created_books", null=True)
+    
+    title = models.CharField(max_length=100, null=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE,related_name="book", null=True)
     publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE,related_name="book", null=True)
+    date_created = models.DateTimeField(auto_now_add=True)
     year_published = models.PositiveIntegerField(choices=year_choices(), null=True)
     print_num = models.PositiveSmallIntegerField(default=1)
     cover_num = models.PositiveSmallIntegerField(default=1)
@@ -116,10 +160,30 @@ class Book(models.Model) :
     in_store = models.PositiveSmallIntegerField(null=True)
     cost = models.PositiveIntegerField(null=True)
     tag = TG()
+    slug = models.SlugField(null=True)
     
     popularity = GenericRelation(Popularity, related_query_name="book")
     prevention = GenericRelation(Prevention, related_query_name="book")
     follow_up = GenericRelation(FollowUp, related_query_name="book")
+    
+    def isBookmarkedBy(self, user) :
+        return bool(self.popularity.bookmarks().filter(user=user))
+    
+    def isLikedBy(self, user) :
+        return bool(self.popularity.likes().filter(user=user))
+    
+    def isDislikedBy(self, user) :
+        return bool(self.popularity.dislikes().filter(user=user))
+    
+    
+    def get_absolute_url(self) :
+        return reverse(addresses.book_detail_url, args=[self.slug])
+
+
+    def save(self, *args, **kwargs) :
+        self.slug = '-'.join([slugify(self.title), slugify(self.author), slugify(self.publisher), slugify(self.user)])
+        super().save(*args, **kwargs)
+    
     
     def __str__(self) :
         return self.title
@@ -138,6 +202,13 @@ class Comment(models.Model):
     prevention = GenericRelation(Prevention, related_query_name="comment")
     follow_up = GenericRelation(FollowUp, related_query_name="comment")
     
+    
+    def get_absolute_url(self) :
+        return self.book.get_absolute_url()
+    
+    class Meta :
+        ordering = ("date_published", )
+    
     def __str__(self) :
         return f"{self.body}"
 
@@ -154,6 +225,9 @@ class Reply(models.Model):
     popularity = GenericRelation(Popularity, related_query_name="replay")
     prevention = GenericRelation(Prevention, related_query_name="replay")
     follow_up = GenericRelation(FollowUp, related_query_name="replay")
+    
+    def get_absolute_url(self) :
+        return self.comment.book.get_absolute_url()
     
     def __str__(self) :
         return f"{self.body}"

@@ -1,0 +1,17 @@
+{% if have_like and liked_condition %}
+    <button style="background-color:green"><a href="{% url 'managing:set-action-like' id content_type 'like' %}">Liked</a></button>
+{% elif have_like and not liked_condition %}
+    <button><a href="{% url 'managing:set-action-like' id content_type 'like' %}">Like</a></button>
+{% endif %}
+
+{% if have_dislike and disliked_condition %}
+    <button style="background-color:red"><a href="{% url 'managing:set-action-like' id content_type 'dislike' %}">DisLiked</a></button>
+{% elif have_dislike and not disliked_condition %}
+    <button><a href="{% url 'managing:set-action-like' id content_type 'dislike' %}">DisLike</a></button>
+{% endif %}
+
+{% if have_bookmark and bookmarked_condition %}
+    <button style="background-color:cyan"><a href="{% url 'managing:set-action-like' id content_type 'bookmark' %}">Bookmarked</a></button>
+{% elif have_bookmark and not bookmarked_condition %}
+    <button><a href="{% url 'managing:set-action-like' id content_type 'bookmark' %}">Bookmark</a></button>
+{% endif %}

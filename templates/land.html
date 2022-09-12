@@ -4,7 +4,7 @@
     <div >
     {% for book in books %}
     <div style="border-style:solid;margin-bottom:5px;">
-        <a href="{% url 'managing:book_detail' book.id %}"><h2 style="float:left;margin-right:10px">{{book.title}}</h2></a>
+        <a href={{book.get_absolute_url}}><h2 style="float:left;margin-right:10px">{{book.title}}</h2></a>
         <h4 style="float:left;margin-right:10px">{{ book.author.full_name }}</h4>
         <h4 style="float:left;margin-right:10px">{{ book.publisher }}</h4>
         <h4>{{ book.pages }} pages</h4>

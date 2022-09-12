@@ -1,9 +1,14 @@
 {% extends 'main.html' %}
 
 {% block content %}
+    {% if request.user.is_authenticated and request.user != book.user %}
+    
+        {% include 'managing/popularity_actions.html' with id=book.id content_type='managing_book' have_like=True have_dislike=True have_bookmark=True liked_condition=liked disliked_condition=disliked bookmarked_condition=bookmarked %}
+    {% endif %}
+    
     <h3>name : {{book.title}}</h3>
-    <h3>author : {{book.author.full_name}}</h3>
-    <h3>publisher : {{book.publisher.name}}</h3>
+    <h3>author : <a href="#">{{book.author.full_name}}</a></h3>
+    <h3>publisher : <a href="#">{{book.publisher.name}}</a></h3>
     <h3>pages : {{book.pages}}</h3>
     <h3>published in : {{book.year_published}}</h3>
     <h3>print number : {{book.print_num}}</h3>
@@ -19,42 +24,9 @@
         {% endfor %}
     </div>
     <hr/>
-    {% if not book.comment.all %}
-        <h2 style="color:red">there is no comment yet.</h2>
-    {% endif %}
-    {% if book.comment.all %}
-        <div style="background-color:#bbbbbb;border:solid red 5px;padding:20px">
-            <h2>Comments on this Book</h2>
-            {% for comment in book.comment.all %}
-                {% if comment.visible %}
-                    <div style="background-color:#bbbbbb;border:solid blue 5px;padding:20px;margin-bottom:20px">
-                        <h2 style="margin-left:25px;color:red">{{ comment.body }}</h2>
-                        <h6 style="margin-left:25px;margin-top:50px;color:#4d3adf">commented by <b>{{ comment.user.username }}</b> in {{ comment.date_published }}</h6>
-                        {% if comment.reply.all %}
-                            <div style="margin-left:50px;margin-bottom:20px;border:solid red 2px;padding-left:10px">
-                                    {% for reply in comment.reply.all %}
-                                        {% if reply.visible %}    
-                                            <div>
-                                                {% if reply.quotes %}
-                                                    <p style="margin-left:60px;color:blue"><small>{{reply.quotes.user.username}} : {{reply.quotes.body}}</small></p>
-                                                {% endif %}
-                                                <p>{{reply.user.username}} : {{reply.body}}</p>
-                                            </div>
-                                            {% if user.is_authenticated %}
-                                            <div>
-                                                <a href="{% url 'managing:set-action-like' reply.id 'managing_reply' %}?next={{ request.path|urlencode }}">Like</a>
-                                                <a href="{% url 'managing:set-action-like' reply.id 'managing_reply' %}?next={{ request.path|urlencode }}">DisLike</a>
-                                                <a href="#">Report</a>
-                                            </div>
-                                            {% endif %}
-                                            <hr style="height:3px"/>
-                                        {% endif %}
-                                    {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        <div>
+        {% include "managing/comment.html" with comments=book.comment.all %}
+    <hr/>
+    {% if request.user.is_authenticated %}
+        {% include "managing/form.html" with which="Comment"%}
     {% endif %}
 {% endblock %}

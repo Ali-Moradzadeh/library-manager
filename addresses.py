@@ -6,6 +6,7 @@ profile_template = 'authenticate/profile.html'
 logout_template = 'authenticate/logout.html'
 password_change_template = 'authenticate/password_change.html'
 password_change_done_template = 'authenticate/password_change_done.html'
+form_template = 'managing/form.html'
 book_detail_template = 'managing/book_detail.html'
 
 #urls
@@ -16,3 +17,5 @@ profile_url = "authenticate:user_profile"
 logout_url = "authenticate:user_logout"
 password_change_url = "authenticate:user_password_change"
 password_change_done_url = "authenticate:user_password_change_done"
+#book_list_url = 'managing:book_list'
+book_detail_url = 'managing:book_detail'

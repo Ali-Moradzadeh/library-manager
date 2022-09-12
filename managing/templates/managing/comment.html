@@ -1,3 +1,29 @@
-<div>
-    <p>Some comments</p>
+<div style="background-color:#bbbbbb;border:solid red 5px;padding:20px">
+    <h2>Comments on this Book</h2>
+    {% for comment in comments %}
+        {% if comment.visible %}
+            <div style="background-color:#dddddd;border:solid blue 5px;padding:20px;margin-bottom:20px">
+                <h2 style="margin-left:25px;color:red">{{ comment.body }}</h2>
+                <h6 style="margin-left:25px;margin-top:50px;color:#4d3adf">commented by <b>{{ comment.user.username }}</b> in {{ comment.date_published }}</h6>
+                {% if request.user.is_authenticated %}
+                <div style="margin-left:25px;margin-top:50px;">
+                    {% if request.user != comment.user %}
+                        {% include 'managing/popularity_actions.html' with id=comment.id content_type='managing_comment' have_like=True have_dislike=True have_bookmark=False liked_condition=liked disliked_condition=disliked %}
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% include "managing/reply.html" with replies=comment.reply.all %}
+                {% if request.user.is_authenticated %}
+                    <button><a href="{% url 'managing:add_reply' comment.id %}">Add A Reply</a></button>
+                    {% if request.user == comment.user %}
+                        <button>
+                            <a href="{% url 'managing:delete_object_model' comment.id 'managing_comment'%}?next={{ request.path|urlencode }}">delete</a>
+                        </button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+    {% empty %}
+        <h2 style="color:red">there is no comment yet.</h2>
+    {% endfor %}
 </div>
